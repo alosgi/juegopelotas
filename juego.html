@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Juego de Pelotas de Colores</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #111827;
+        }
+
+        h1 {
+            font-size: 1.875rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        /* Contenedor principal */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        /* Botones */
+        .button-container {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .button {
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+            color: #111827;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover {
+            background-color: #f3f4f6;
+        }
+
+        /* Tablero de juego */
+        .game-board {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .column {
+            position: relative;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            justify-content: flex-start;
+            width: 4rem;
+            height: 20rem;
+            background-color: #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .column.selected {
+            border-color: #3b82f6;
+        }
+
+        .column.auxiliary {
+            border-color: #eab308;
+        }
+
+        .column-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        /* Pelotas */
+        .ball {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            margin-bottom: 0.25rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .ball.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 4px #3b82f6, 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Colores de las pelotas */
+        .red { background-color: #ef4444; }
+        .blue { background-color: #3b82f6; }
+        .green { background-color: #10b981; }
+        .yellow { background-color: #eab308; }
+        .purple { background-color: #8b5cf6; }
+
+        /* Instrucciones */
+        .instructions {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            max-width: 28rem;
+        }
+
+        .instructions h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .instructions ul {
+            padding-left: 1.5rem;
+            margin-top: 0.25rem;
+            list-style-type: disc;
+        }
+
+        .instructions li {
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Juego de Pelotas de Colores</h1>
+        
+        <div class="button-container">
+            <button id="restart-button" class="button">Reiniciar Juego</button>
+        </div>
+        
+        <div id="game-board" class="game-board">
+            <!-- Las columnas y pelotas se generarán con JavaScript -->
+        </div>
+        
+        <div class="instructions">
+            <h2>Instrucciones:</h2>
+            <ul>
+                <li>Haz clic en una columna para seleccionar la pelota superior</li>
+                <li>Luego haz clic en otra columna para mover la pelota allí</li>
+                <li>Cada columna puede contener un máximo de 5 pelotas</li>
+                <li>El objetivo es ordenar las pelotas por color en las columnas</li>
+                <li>La última columna (amarilla) se puede usar como columna auxiliar</li>
+                <li>Presiona "Reiniciar Juego" para generar un nuevo tablero aleatorio</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Configuración del juego
+        const COLORS = ["red", "blue", "green", "yellow", "purple"];
+        const COLUMNS = 6;
+        const BALLS_PER_COLOR = 5;
+        const MAX_BALLS_PER_COLUMN = 5;
+
+        // Estado del juego
+        let columns = [];
+        let selectedColumn = null;
+
+        // Elementos del DOM
+        const gameBoard = document.getElementById('game-board');
+        const restartButton = document.getElementById('restart-button');
+
+        // Inicializar el juego cuando la página cargue y añadir eventos
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeGame();
+        });
+        restartButton.addEventListener('click', () => {
+            initializeGame();
+        });
+
+        // Función para inicializar el juego
+        function initializeGame() {
+            // Crear todas las pelotas
+            const allBalls = [];
+            COLORS.forEach(color => {
+                for (let i = 0; i < BALLS_PER_COLOR; i++) {
+                    allBalls.push(color);
+                }
+            });
+
+            // Mezclar las pelotas
+            const shuffledBalls = shuffleArray([...allBalls]);
+
+            // Distribuir en columnas vacías
+            columns = Array(COLUMNS).fill().map(() => []);
+
+            let ballIndex = 0;
+            for (let col = 0; col < COLUMNS-1; col++) {
+                for (let row = 0; row < MAX_BALLS_PER_COLUMN; row++) {
+                    if (ballIndex < shuffledBalls.length) {
+                        columns[col].push(shuffledBalls[ballIndex]);
+                        ballIndex++;
+                    }
+                }
+            }
+
+            // Deseleccionar columna
+            selectedColumn = null;
+
+            // Renderizar el tablero
+            renderGameBoard();
+
+            // Ejecutar el solver automáticamente
+            setTimeout(() => solveAndPlay(), 100);
+        }
+
+        // Función para mezclar un array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Función para renderizar el tablero de juego
+        function renderGameBoard() {
+            gameBoard.innerHTML = '';
+
+            for (let columnIndex = 0; columnIndex < COLUMNS; columnIndex++) {
+                const column = columns[columnIndex];
+                const columnElement = document.createElement('div');
+                columnElement.className = 'column';
+
+                if (selectedColumn === columnIndex) {
+                    columnElement.classList.add('selected');
+                }
+                if (columnIndex === COLUMNS - 1) {
+                    columnElement.classList.add('auxiliary');
+                }
+
+                // Añadir evento para seleccionar/mover pelotas
+                columnElement.addEventListener('click', () => handleColumnClick(columnIndex));
+
+                const columnLabel = document.createElement('div');
+                columnLabel.className = 'column-label';
+                columnLabel.textContent = columnIndex === COLUMNS - 1 ? 'Auxiliar' : (columnIndex + 1);
+                columnElement.appendChild(columnLabel);
+
+                for (let ballIndex = 0; ballIndex < column.length; ballIndex++) {
+                    const color = column[ballIndex];
+                    const ballElement = document.createElement('div');
+                    ballElement.className = `ball ${color}`;
+                    if (selectedColumn === columnIndex && ballIndex === column.length - 1) {
+                        ballElement.classList.add('selected');
+                    }
+                    columnElement.appendChild(ballElement);
+                }
+
+                gameBoard.appendChild(columnElement);
+            }
+        }
+
+        // Función para manejar clics del jugador (aunque el juego se resuelve solo)
+        function handleColumnClick(columnIndex) {
+            if (selectedColumn === null) {
+                if (columns[columnIndex].length > 0) {
+                    selectedColumn = columnIndex;
+                    renderGameBoard();
+                }
+            } else {
+                if (selectedColumn !== columnIndex) {
+                    moveBall(selectedColumn, columnIndex);
+                }
+                selectedColumn = null;
+                renderGameBoard();
+            }
+        }
+
+        // Función para mover una pelota entre columnas
+        function moveBall(fromColumn, toColumn) {
+            if (fromColumn === toColumn) return;
+            if (columns[toColumn].length >= MAX_BALLS_PER_COLUMN) return;
+            if (columns[fromColumn].length === 0) return;
+
+            const ballToMove = columns[fromColumn].pop();
+            columns[toColumn].push(ballToMove);
+            checkWinCondition();
+        }
+
+        // Verifica si el juego está ganado
+        function checkWinCondition() {
+            let coloredColumns = 0;
+
+            for (let col = 0; col < COLUMNS; col++) {
+                const column = columns[col];
+                if (column.length === MAX_BALLS_PER_COLUMN) {
+                    const allSame = column.every(ball => ball === column[0]);
+                    if (allSame) coloredColumns++;
+                }
+            }
+
+            if (coloredColumns === 5) {
+                setTimeout(() => alert('¡Felicidades! Has completado el juego.'), 100);
+                return true;
+            }
+            return false;
+        }
+
+        // --- Algoritmo solver BFS ---
+        function solveGame(initialColumns, maxBallsPerColumn) {
+            const start = performance.now();
+
+            const queue = [];
+            const visited = new Set();
+
+            function serialize(cols) {
+                return cols.map(col => col.join(',')).join('|');
+            }
+
+            function isSolved(cols) {
+                let solvedCount = 0;
+                for (const col of cols) {
+                    if (col.length === maxBallsPerColumn && col.every(ball => ball === col[0])) {
+                        solvedCount++;
+                    }
+                }
+                return solvedCount === COLORS.length;
+            }
+
+            queue.push({ state: initialColumns, path: [] });
+            visited.add(serialize(initialColumns));
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+                const state = current.state;
+
+                if (isSolved(state)) {
+                    const end = performance.now();
+                    return { moves: current.path, time: end - start };
+                }
+
+                for (let from = 0; from < state.length; from++) {
+                    if (state[from].length === 0) continue;
+
+                    for (let to = 0; to < state.length; to++) {
+                        if (from === to) continue;
+                        if (state[to].length >= maxBallsPerColumn) continue;
+
+                        // Se puede mover si la bola es igual a la bola superior del destino o si destino vacío
+                        const ballToMove = state[from][state[from].length - 1];
+                        const destTop = state[to][state[to].length - 1];
+                        if (state[to].length === 0 || destTop === ballToMove) {
+                            // Crear nuevo estado
+                            const newState = state.map(col => col.slice());
+                            newState[to].push(newState[from].pop());
+
+                            const key = serialize(newState);
+                            if (!visited.has(key)) {
+                                visited.add(key);
+                                queue.push({
+                                    state: newState,
+                                    path: [...current.path, { from, to }]
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null; // No se encontró solución
+        }
+
+        // Función para ejecutar los movimientos resueltos automáticamente
+        async function solveAndPlay() {
+            const solution = solveGame(columns, MAX_BALLS_PER_COLUMN);
+            if (!solution) {
+                alert('No se encontró solución para este tablero.');
+                return;
+            }
+
+            console.log(`Solución encontrada en ${solution.moves.length} movimientos, tiempo de búsqueda: ${solution.time.toFixed(2)} ms`);
+
+            for (const move of solution.moves) {
+                moveBall(move.from, move.to);
+                renderGameBoard();
+                await delay(350); // Espera 350ms entre movimientos
+            }
+
+            checkWinCondition();
+        }
+
+        // Función delay para animación
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
